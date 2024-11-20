@@ -12,7 +12,7 @@ public class UserClient {
     private final WebClient webClient;
 
     public UserClient(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.baseUrl("http://localhost:8080/api/auth").build();
+        this.webClient = webClientBuilder.baseUrl("http://localhost:8082/api/user").build();
     }
 
     public UserDTO getUserById(Long userId) {
