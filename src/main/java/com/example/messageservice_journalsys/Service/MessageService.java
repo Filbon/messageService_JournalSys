@@ -7,7 +7,12 @@ import com.example.messageservice_journalsys.Repository.MessageRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,23 +22,27 @@ import java.util.stream.Collectors;
 public class MessageService {
 
     private final MessageRepository messageRepository;
-    private final UserClient userClient;
+    private final RestTemplate restTemplate;
     private final ModelMapper modelMapper;
 
-    public MessageService(MessageRepository messageRepository, UserClient userClient, ModelMapper modelMapper) {
+    public MessageService(MessageRepository messageRepository, RestTemplate restTemplate, ModelMapper modelMapper) {
         this.messageRepository = messageRepository;
-        this.userClient = userClient;
+        this.restTemplate = restTemplate;
         this.modelMapper = modelMapper;
     }
 
     @Transactional
     public MessageDTO sendMessage(MessageDTO messageDTO) {
-        // Fetch sender and recipient details using UserClient
-        UserDTO sender = userClient.getUserById(messageDTO.getSenderId());
-        UserDTO recipient = userClient.getUserById(messageDTO.getRecipientId());
+        // Fetch sender details
+        UserDTO sender = getUserById(messageDTO.getSenderId());
+        if (sender == null) {
+            throw new EntityNotFoundException("Sender not found with ID: " + messageDTO.getSenderId());
+        }
 
-        if (sender == null || recipient == null) {
-            throw new EntityNotFoundException("Sender or recipient not found");
+        // Fetch recipient details
+        UserDTO recipient = getUserById(messageDTO.getRecipientId());
+        if (recipient == null) {
+            throw new EntityNotFoundException("Recipient not found with ID: " + messageDTO.getRecipientId());
         }
 
         // Map MessageDTO to Message entity
@@ -43,7 +52,7 @@ public class MessageService {
         message.setSenderId(sender.getId());
         message.setRecipientId(recipient.getId());
 
-        // Save message to the database
+        // Save the message to the database
         Message savedMessage = messageRepository.save(message);
 
         // Convert saved Message entity back to MessageDTO
@@ -60,8 +69,8 @@ public class MessageService {
         // Convert messages to DTOs and enrich with sender/recipient names
         return messages.stream()
                 .map(message -> {
-                    UserDTO sender = userClient.getUserById(message.getSenderId());
-                    UserDTO recipient = userClient.getUserById(message.getRecipientId());
+                    UserDTO sender = getUserById(message.getSenderId());
+                    UserDTO recipient = getUserById(message.getRecipientId());
                     return new MessageDTO(
                             message.getId(),
                             message.getSenderId(),
@@ -74,4 +83,24 @@ public class MessageService {
                 })
                 .collect(Collectors.toList());
     }
+
+    // Utility method to fetch user details using RestTemplate
+    private UserDTO getUserById(Long userId) {
+        try {
+            String userApiUrl = "http://localhost:8082/api/user/users/{id}";
+            ResponseEntity<UserDTO> userResponse = restTemplate.exchange(userApiUrl, HttpMethod.GET, null, UserDTO.class, userId);
+            if(userResponse.getStatusCode() == HttpStatus.OK) {
+                return userResponse.getBody();
+            }
+        } catch (HttpClientErrorException.NotFound e) {
+            // Handle user not found error
+            return null;
+        } catch (Exception e) {
+            // Log and rethrow unexpected exceptions
+            throw new RuntimeException("Error fetching user details for ID: " + userId, e);
+        }
+        return null;
+    }
 }
+
+
