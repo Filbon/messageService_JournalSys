@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://kubernetes.docker.internal:30000")
 @RestController
 @RequestMapping("/api/messages")
 public class MessageController {
