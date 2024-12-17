@@ -87,7 +87,7 @@ public class MessageService {
     // Utility method to fetch user details using RestTemplate
     private UserDTO getUserById(Long userId) {
         try {
-            String userApiUrl = "http://user-service:8082/api/user/users/{id}";
+            String userApiUrl = "https://userservice.app.cloud.cbh.kth.se/api/user/users/{id}";
             ResponseEntity<UserDTO> userResponse = restTemplate.exchange(userApiUrl, HttpMethod.GET, null, UserDTO.class, userId);
             if(userResponse.getStatusCode() == HttpStatus.OK) {
                 return userResponse.getBody();
