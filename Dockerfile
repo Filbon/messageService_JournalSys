@@ -5,7 +5,7 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copy the built JAR file from the target directory into the container
-COPY target/messageService_JournalSys-0.0.1-SNAPSHOT.jar messageService.jar
+COPY messageService_JournalSys-0.0.1-SNAPSHOT.jar messageService.jar
 
 # Expose the port the app runs on (default Spring Boot port)
 EXPOSE 8083
